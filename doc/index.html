@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+lang="en">
+<head>
+<title>Flu</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<link rel="stylesheet" href="doc.css" type="text/css"/>
+</head>
+<body>
+
+<div class="chapter" id="header">
+<img width="128" height="128" alt="Flu" src="logo.png"/>
+<p>Filesystems in Lua Userspace</p>
+<p class="bar">
+<a href="index.html">home</a> &middot;
+<a href="index.html#download">download</a> &middot;
+<a href="index.html#installation">installation</a> &middot;
+<a href="manual.html">manual</a> &middot;
+<a href="examples.html">examples</a>
+</p>
+</div>
+
+<div class="chapter">
+<a id="about"/><h1>1 - About Flu</h1>
+
+<p>Flu is a Lua binding for <a href="http://fuse.sourceforge.net/">FUSE</a>, which is a library allowing creation of filesystem drivers run in userspace. Flu is a high level binding, using basic Lua types rather than userdata whenever possible.</p>
+
+<p>Flu tries to be complete, but is not supporting obsolete APIs. The binding is closely following the FUSE API, so in most case you can use FUSE documentation if the present page is not clear enough. The missing functions are missing because I've not used them yet. I can add them on request (a use case could be helpful for non-trivial ones).</p>
+
+<h2>Support</h2>
+
+<p>All support is done through the <a href="http://www.lua.org/lua-l.html">Lua mailing list</a>.</p>
+
+<p>Feel free to ask for further developments. I can't guarantee that I'll develop everything you ask, but I want my code to be as useful as possible, so I'll do my best to help you. You can also send me request or bug reports (for code and documentation) directly at <a href="mailto:jerome.vuarand@gmail.com">jerome.vuarand@gmail.com</a>.</p>
+
+<h2>Credits</h2>
+
+<p>This module is written and maintained by <a href="mailto:jerome.vuarand@gmail.com">Jérôme Vuarand</a>. It is a fork of <a href="http://piratery.net/luse/">LUSE</a>, a previous Lua-FUSE binding from the same author. LUSE was low level and rather complicated to use, while Flu tries its best to be simple.</p>
+
+<p>Flu is available under a <a href="LICENSE.txt">MIT-style license</a>.</p>
+
+</div>
+
+<div class="chapter">
+<a id="download"/><h1>2 - Download</h1>
+
+<p>Flu sources are available in its <a href="http://hg.piratery.net/flu/">Mercurial repository</a>:</p>
+
+<pre><code>hg clone http://hg.piratery.net/flu
+</code></pre>
+
+<p>Tarballs of the latest code can be downloaded directly from there: as <a href="http://hg.piratery.net/flu/get/tip.tar.gz">gz</a>, <a href="http://hg.piratery.net/flu/get/tip.tar.bz2">bz2</a> or <a href="http://hg.piratery.net/flu/get/tip.zip">zip</a>.</p>
+
+<p>Finally, I published some rockspecs:</p>
+
+<pre><code>luarocks install flu
+</code></pre>
+
+</div>
+
+<div class="chapter">
+<a id="installation"/><h1>3 - Installation</h1>
+
+<p>To build Flu from sources, edit the Makefile and then run make in the top directory:</p>
+
+<pre><code>$ vi Makefile
+$ make
+$ sudo make install
+</code></pre>
+
+<p>Flu obviously depends on FUSE. It currently supports FUSE API versions 25 (FUSE 2.5.x and later) and 26 (FUSE 2.6.x and later). You can select a FUSE API version in the Makefile.</p>
+
+</div>
+
+<div class="chapter" id="footer">
+<small>Last update: 2012-12-12 01:42:14 GMT</small>
+</div>
+
+</body>
+</html>
+

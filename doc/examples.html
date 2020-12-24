@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+lang="en">
+<head>
+<title>Flu</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<link rel="stylesheet" href="doc.css" type="text/css"/>
+</head>
+<body>
+
+<div class="chapter" id="header">
+<img width="128" height="128" alt="Flu" src="logo.png"/>
+<p>Filesystems in Lua Userspace</p>
+<p class="bar">
+<a href="index.html">home</a> &middot;
+<a href="index.html#download">download</a> &middot;
+<a href="index.html#installation">installation</a> &middot;
+<a href="manual.html">manual</a> &middot;
+<a href="examples.html">examples</a>
+</p>
+</div>
+
+<div class="chapter">
+<a id="examples"/><h1>5 - Examples</h1>
+
+<p>Here are some filesystem examples. <a href="#hellofs"><code>hellofs</code></a> is just a minimal example. <a href="#luafs"><code>luafs</code></a> is a basic filesystem that exposes a Lua table as a directory. It can be used as a model to expose some data from a Lua state in your own applications.</p>
+<div class="section">
+
+<h2>5.1 - hellofs</h2>
+
+<p><code>hellofs</code> is the Hello World! of FUSE filesystems. It creates a directory with a single file called <code>hello</code> that contain the string <code>"Hello World!"</code>.</p>
+
+<p>Example:</p>
+
+<pre><code>$ mkdir tmpdir
+$ ./hellofs.lua tmpdir
+$ ls tmpdir
+hello
+$ cat tmpdir/hello
+Hello World!
+$ fusermount -u tmpdir
+</code></pre>
+
+<p>Source code: <a href="http://piratery.net/flu/hellofs.lua">hellofs.lua</a></p>
+
+
+</div><div class="section">
+
+<h2>5.2 - luafs</h2>
+
+<p><code>luafs</code> expose a table as a directory. The subtables are exposed as subdirectories, while the string fields are exposed as regular files. You can create new files, and write to them: that will create new strings in the table hierarchy.</p>
+
+<p>Example:</p>
+
+<pre><code>$ mkdir tmpdir
+$ ./luafs.lua tmpdir
+$ ls tmpdir
+$ echo Hello World! &gt; tmpdir/hello
+$ ls tmpdir
+hello
+$ cat tmpdir/hello
+Hello World!
+$ mkdir tmpdir/subdir
+$ ls tmpdir
+hello subdir/
+$ echo foo &gt; tmpdir/subdir/bar
+$ ls tmpdir/subdir
+bar
+$ cat tmpdir/subdir/bar
+foo
+$ fusermount -u tmpdir
+</code></pre>
+
+<p>Source code: <a href="http://piratery.net/flu/luafs.lua">luafs.lua</a></p>
+
+
+</div></div>
+
+<div class="chapter" id="footer">
+<small>Last update: 2015-03-31 12:14:05 BST</small>
+</div>
+
+</body>
+</html>
+

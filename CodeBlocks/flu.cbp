@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="flu" />
+		<Option pch_mode="2" />
+		<Option compiler="gcc" />
+		<Build>
+			<Target title="Release">
+				<Option output="bin/Release/flu" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="3" />
+				<Option compiler="gcc" />
+				<Option createDefFile="1" />
+				<Option createStaticLib="1" />
+				<Compiler>
+					<Add option="-O2" />
+					<Add option="-DFUSE_USE_VERSION=31" />
+					<Add directory="../inc" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+					<Add library="../lib/libfuse3.so" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="../compat.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../compat.h" />
+		<Unit filename="../errno.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../flu.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../inc/fuse.h" />
+		<Unit filename="../inc/fuse_common.h" />
+		<Unit filename="../inc/fuse_log.h" />
+		<Unit filename="../inc/fuse_opt.h" />
+		<Unit filename="../inc/lauxlib.h" />
+		<Unit filename="../inc/lua.h" />
+		<Unit filename="../inc/luaconf.h" />
+		<Unit filename="../posix_structs.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../posix_structs.h" />
+		<Extensions />
+	</Project>
+</CodeBlocks_project_file>

@@ -1,0 +1,449 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en"
+lang="en">
+<head>
+<title>Flu</title>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
+<link rel="stylesheet" href="doc.css" type="text/css"/>
+</head>
+<body>
+
+<div class="chapter" id="header">
+<img width="128" height="128" alt="Flu" src="logo.png"/>
+<p>Filesystems in Lua Userspace</p>
+<p class="bar">
+<a href="index.html">home</a> &middot;
+<a href="index.html#download">download</a> &middot;
+<a href="index.html#installation">installation</a> &middot;
+<a href="manual.html">manual</a> &middot;
+<a href="examples.html">examples</a>
+</p>
+</div>
+
+<div class="chapter">
+<a id="manual"/><h1>4 - Manual</h1>
+
+<p>Here you can find a list of the functions present in the module and how to use them. Flu main module follows Lua package system, see the <a href="http://www.lua.org/manual/5.1/">Lua 5.1 manual</a> or <a href="http://www.lua.org/manual/5.2/">Lua 5.2 manual</a> for further explanations.</p>
+
+<p>Quick links:</p>
+
+<ul>
+    <li><a href="#flu_functions">flu module</a>
+    <ul>
+        <li><a href="#flu.get_context">flu.get_context</a></li>
+        <li><a href="#flu.main">flu.main</a></li>
+    </ul></li>
+    <li><a href="#fuse_functions">Filesystem methods</a>
+    <ul>
+        <li><a href="#fs.access">fs.access</a></li>
+        <li><a href="#fs.chmod">fs.chmod</a></li>
+        <li><a href="#fs.chown">fs.chown</a></li>
+        <li><a href="#fs.create">fs.create</a></li>
+        <li><a href="#fs.fgetattr">fs.fgetattr</a></li>
+        <li><a href="#fs.flush">fs.flush</a></li>
+        <li><a href="#fs.fsync">fs.fsync</a></li>
+        <li><a href="#fs.fsyncdir">fs.fsyncdir</a></li>
+        <li><a href="#fs.ftruncate">fs.ftruncate</a></li>
+        <li><a href="#fs.getattr">fs.getattr</a></li>
+        <li><a href="#fs.getxattr">fs.getxattr</a></li>
+        <li><a href="#fs.link">fs.link</a></li>
+        <li><a href="#fs.listxattr">fs.listxattr</a></li>
+        <li><a href="#fs.mkdir">fs.mkdir</a></li>
+        <li><a href="#fs.mknod">fs.mknod</a></li>
+        <li><a href="#fs.open">fs.open</a></li>
+        <li><a href="#fs.opendir">fs.opendir</a></li>
+        <li><a href="#fs.read">fs.read</a></li>
+        <li><a href="#fs.readdir">fs.readdir</a></li>
+        <li><a href="#fs.readlink">fs.readlink</a></li>
+        <li><a href="#fs.release">fs.release</a></li>
+        <li><a href="#fs.releasedir">fs.releasedir</a></li>
+        <li><a href="#fs.removexattr">fs.removexattr</a></li>
+        <li><a href="#fs.rename">fs.rename</a></li>
+        <li><a href="#fs.rmdir">fs.rmdir</a></li>
+        <li><a href="#fs.setxattr">fs.setxattr</a></li>
+        <li><a href="#fs.statfs">fs.statfs</a></li>
+        <li><a href="#fs.symlink">fs.symlink</a></li>
+        <li><a href="#fs.truncate">fs.truncate</a></li>
+        <li><a href="#fs.unlink">fs.unlink</a></li>
+        <li><a href="#fs.utimens">fs.utimens</a></li>
+        <li><a href="#fs.write">fs.write</a></li>
+    </ul></li>
+</ul>
+	<div class="section">
+	<h2><a name="flu_functions">4.1 - flu module</a></h2>
+
+<p>The <code>flu</code> module has very few functions, most of the magic happens inside the <code>fs</code> table passed to <a href="#flu.main"><code>flu.main</code></a>.</p>
+
+		<div class="function">
+		<h3><a name="flu.main"><code>flu.main (argv, fs)</code></a></h3>
+
+<p>Starts a new filesystem daemon. <code>argv</code> is an array containing additionnal parameters to pass to the FUSE library. <code>fs</code> is a table (or any indexable object) containing methods of the FUSE filesystem you are trying to create.</p>
+
+<pre><code>local luafs = {}
+function luafs.getattr(path, stat)
+    error(flu.errno.ENOSYS)
+end
+local argv = {"luafs", select(2, ...)}
+flu.main(argv, luafs)
+</code></pre>
+
+		</div>
+
+		<div class="function">
+		<h3><a name="flu.get_context"><code>flu.get_context ([tbl])</code></a></h3>
+
+<p>Obtain information about the context of the current FUSE request. A table is returned containing fields <code>uid</code>, <code>gid</code> and <code>pid</code> (user, group and thread id of the calling process, respectively). If no arguments are given, a new table is created. If a table is passed as an argument, it is reused and fields are set in it instead.</p>
+		</div>
+
+	</div>
+
+	<div class="section">
+	<h2><a name="fuse_functions">4.2 - Filesystem methods</a></h2>
+
+<p>These methods may be present in the <code>fs</code> object passed to <a href="#flu.main"><code>flu.main</code></a>. They are all optional, though without them your filesystem may not work properly. See example filesystems available in Flu packages for minimal requirements.</p>
+
+<p>Below each functon is described with the parameters they are called with, and the expected return values on normal operation. Most functions though have no return value. To express error conditions, regular Lua error should be thrown with <code>error</code>. The thrown error though have to be errno userdata values as found in the flu.errno table. For example:</p>
+
+<pre><code>error(flu.errno.EINVAL)
+</code></pre>
+
+<p>They are named methods here, but they are called as Lua function, without a self parameter. To maintain state, use upvalues.</p>
+
+<p>As of FUSE 2.6, there are six FUSE methods that are not bound by Flu: and <code>init</code>, <code>destroy</code>, <code>lock</code> and <code>bmap</code> which I haven't used yet and are a bit complicated to bind, and <code>getdir</code> and <code>utime</code> which are obsolete.</p>
+
+		<div class="function">
+		<h3><a name="fs.getattr"><code>stat = fs.getattr (path)</code></a></h3>
+
+<p>Get file attributes. <code>stat</code> should be a table, with some of the following fields set:</p>
+
+<ul>
+    <li><code>dev</code>, number, ID of device containing file</li>
+    <li><code>ino</code>, number, inode number</li>
+    <li><code>mode</code>, a set or a string, file type and permissions. If mode is a set, it's made of the recognized mode flags listed below. If it's a string, it's one of the predefined modes described below.</li>
+    <li><code>nlink</code>, number, number of hard links</li>
+    <li><code>uid</code>, number, user ID of owner</li>
+    <li><code>gid</code>, number, group ID of owner</li>
+    <li><code>rdev</code>, number, device ID (if special file)</li>
+    <li><code>access</code>, number, time of last access</li>
+    <li><code>modification</code>, number, time of last modification</li>
+    <li><code>change</code>, number, time of last status change</li>
+    <li><code>size</code>, number, total size, in bytes</li>
+    <li><code>blocks</code>, number, number of blocks allocated</li>
+    <li><code>blksize</code>, number, blocksize for filesystem I/O</li>
+</ul>
+
+<p>This table is compatible with LuaFileSystem, though the default access rights for <code>mode</code> strings (as described below) may not suit you.</p>
+
+<p>The <code>dev</code> and <code>blksize</code> fields are ignored. The <code>ino</code> field is ignored except if the <code>use_ino</code> mount option is given.</p>
+
+<p>Note that for the <em>find</em> command line utility to work in your filesystem, the <code>nlink</code> field must be properly filled. See <a href="http://fuse.sourceforge.net/wiki/index.php/FAQ#Why_doesnx27.t_find_work_on_my_filesystemx3f.">this FUSE FAQ entry</a> for more details.</p>
+
+<p>Mode flags:</p>
+
+<ul>
+    <li><code>blk</code>, the file is a block device</li>
+    <li><code>chr</code>, the file is a character device</li>
+    <li><code>fifo</code>, the file is a FIFO</li>
+    <li><code>reg</code>, the file is a regular file</li>
+    <li><code>dir</code>, the file is a directory</li>
+    <li><code>lnk</code>, the file is a symbolic link</li>
+    <li><code>sock</code>, the file is a socket</li>
+    <li><code>rusr</code>, owner has read permission</li>
+    <li><code>wusr</code>, owner has write permission</li>
+    <li><code>xusr</code>, owner has execute permission</li>
+    <li><code>rgrp</code>, group has read permission</li>
+    <li><code>wgrp</code>, group has write permission</li>
+    <li><code>xgrp</code>, group has execute permission</li>
+    <li><code>roth</code>, others have read permission</li>
+    <li><code>woth</code>, others have write permission</li>
+    <li><code>xoth</code>, others have execute permission</li>
+    <li><code>suid</code>, set UID bit</li>
+    <li><code>sgid</code>, set-group-ID bit</li>
+    <li><code>svtx</code>, sticky bit</li>
+</ul>
+
+<p>Predefined modes:</p>
+
+<ul>
+    <li><code>'file'</code>, equivalent to <code>reg</code>, <code>rusr</code>, <code>wusr</code>, <code>rgrp</code> and <code>wgrp</code></li>
+    <li><code>'directory'</code>, equivalent to <code>dir</code>, <code>rusr</code>, <code>wusr</code>, <code>xusr</code>, <code>rgrp</code>, <code>wgrp</code> and <code>xgrp</code></li>
+    <li><code>'link'</code>, equivalent to <code>lnk</code>, <code>rusr</code>, <code>wusr</code>, <code>rgrp</code> and <code>wgrp</code></li>
+    <li><code>'socket'</code>, equivalent to <code>sock</code>, <code>rusr</code>, <code>wusr</code>, <code>rgrp</code> and <code>wgrp</code></li>
+    <li><code>'named pipe'</code>, equivalent to <code>fifo</code>, <code>rusr</code>, <code>wusr</code>, <code>rgrp</code> and <code>wgrp</code></li>
+    <li><code>'char device'</code>, equivalent to <code>chr</code>, <code>rusr</code>, <code>wusr</code>, <code>rgrp</code> and <code>wgrp</code></li>
+    <li><code>'block device'</code>, equivalent to <code>blk</code>, <code>rusr</code>, <code>wusr</code>, <code>rgrp</code> and <code>wgrp</code></li>
+    <li><code>'other'</code>, equivalent to an empty set</li>
+</ul>
+
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.readlink"><code>target = fs.readlink (path, size)</code></a></h3>
+
+<p>Read the target of a symbolic link. The target should be returned as a string, which size should not exceed <code>size</code>.</p>
+
+<pre><code>function luafs.readlink(path, size)
+    return "/foo/"..path
+end
+</code></pre>
+
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.mknod"><code>fs.mknod (path, mode, rdev)</code></a></h3>
+
+<p>Create a file node. This is called for creation of all non-directory, non-symlink nodes. If the filesystem defines a <code>create</code> method, then for regular files that will be called instead. <code>mode</code> is a set, see <a href="#fs.getattr"><code>fs.getattr</code></a> for a description of the recognized flags.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.mkdir"><code>fs.mkdir (path, mode)</code></a></h3>
+
+<p>Create a directory. <code>mode</code> is a set, see <a href="#fs.getattr"><code>fs.getattr</code></a> for a description of the recognized flags.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.unlink"><code>fs.unlink (path)</code></a></h3>
+
+<p>Remove a file.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.rmdir"><code>fs.rmdir (path)</code></a></h3>
+
+<p>Remove a directory.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.symlink"><code>fs.symlink (linkname, path)</code></a></h3>
+
+<p>Create a symbolic link. <code>path</code> is the name of the link itself in the Flu filesystem, <code>linkname</code> is the linked file.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.rename"><code>fs.rename (oldpath, newpath)</code></a></h3>
+
+<p>Rename a file.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.link"><code>fs.link (oldpath, newpath)</code></a></h3>
+
+<p>Create a hard link to a file.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.chmod"><code>fs.chmod (path, mode)</code></a></h3>
+
+<p>Change the permission bits of a file. <code>mode</code> is a set, see <a href="#fs.getattr"><code>fs.getattr</code></a> for a description of the recognized flags.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.chown"><code>fs.chown (path, uid, gid)</code></a></h3>
+
+<p>Change the owner and group of a file. <code>uid</code> and <code>gid</code> are numbers.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.truncate"><code>fs.truncate (path, size)</code></a></h3>
+
+<p>Change the size of a file.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.open"><code>fs.open (path, fi)</code></a></h3>
+
+<p>File open operation. <code>fi</code> is a <code>fuse_file_info</code> structure (see below). No creation, or truncation flags (<code>creat</code>, <code>excl</code>, <code>trunc</code>) will be passed to <a href="#fs.open"><code>fs.open</code></a>. Open should check if the operation is permitted for the given flags. Optionally open may also return an arbitrary file handle in the <code>fh</code> field of the <code>fuse_file_info</code> structure, which will be passed to all subsequent operations on that file.</p>
+
+<p>The <code>fuse_file_info</code> structure has the following members:</p>
+
+<ul>
+    <li><code>flags</code>, set, with the following flags recognized: <code>append</code>, <code>async</code>, <code>creat</code>, <code>direct</code>, <code>directory</code>, <code>excl</code>, <code>largefile</code>, <code>noatime</code>, <code>noctty</code>, <code>nofollow</code>, <code>nonblock</code>, <code>ndelay</code>, <code>sync</code>, <code>trunc</code>, <code>rdwr</code>, <code>rdonly</code>, <code>wronly</code></li>
+    <li><code>writepage</code>, number</li>
+    <li><code>direct_io</code>, boolean</li>
+    <li><code>keep_cache</code>, boolean</li>
+    <li><code>flush</code>, boolean</li>
+    <li><code>fh</code>, number, the file handle that the filesystem can write to</li>
+    <li><code>lock_owner</code>, number</li>
+</ul>
+
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.read"><code>data = fs.read (path, size, offset, fi)</code></a></h3>
+
+<p>Read data from an open file. <code>size</code> is the amount of data required in bytes. <code>offset</code> is a position inside the file. See <a href="#fs.open"><code>fs.open</code></a> for a description of <code>fi</code>.</p>
+
+<p>Read should return a string of <code>size</code> length exactly except on end of file or on error, otherwise the rest of the data will be substituted with zeroes. An exception to this is when the <code>direct_io</code> mount option is specified, in which case the return value of the read system call will reflect the return value of this operation.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.write"><code>fs.write (path, buf, offset, fi)</code></a></h3>
+
+<p>Write data to an open file. <code>buf</code> is a string containing the written data. <code>offset</code> is a position inside the file. See <a href="#fs.open"><code>fs.open</code></a> for a description of <code>fi</code>.</p>
+
+<p>Write should return exactly the number of bytes requested except on error. An exception to this is when the <code>direct_io</code> mount option is specified (see read operation).</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.statfs"><code>stat = fs.statfs (path)</code></a></h3>
+
+<p>Get file system statistics. <code>stat</code> should be a table, with some of the following fields set:</p>
+
+<ul>
+    <li><code>bsize</code>, number, file system block size</li>
+    <li><code>frsize</code>, number, fragment size</li>
+    <li><code>blocks</code>, number, size of fs in frsize units</li>
+    <li><code>bfree</code>, number, # free blocks</li>
+    <li><code>bavail</code>, number, # free blocks for non-root</li>
+    <li><code>files</code>, number, # inodes</li>
+    <li><code>ffree</code>, number, # free inodes</li>
+    <li><code>favail</code>, number, # free inodes for non-root</li>
+    <li><code>fsid</code>, number, file system ID</li>
+    <li><code>flag</code>, table, mount flags as a Lua set, with the following recognized flags: <code>rdonly</code>, <code>nosuid</code>.</li>
+    <li><code>namemax</code>, number, maximum filename length</li>
+</ul>
+
+<p>The <code>frsize</code>, <code>favail</code>, <code>fsid</code> and <code>flag</code> fields are ignored.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.flush"><code>fs.flush (path, fi)</code></a></h3>
+
+<p>Possibly flush cached data. See <a href="#fs.open"><code>fs.open</code></a> for a description of <code>fi</code>.</p>
+
+<p>BIG NOTE: This is not equivalent to fsync(). It's not a request to sync dirty data.</p>
+
+<p>Flush is called on each <a href="#fs.close"><code>fs.close</code></a> of a file descriptor. So if a filesystem wants to return write errors in <a href="#fs.close"><code>fs.close</code></a> and the file has cached dirty data, this is a good place to write back data and raise any errors. Since many applications ignore <a href="#fs.close"><code>fs.close</code></a> errors this is not always useful.</p>
+
+<p>NOTE: The <a href="#fs.flush"><code>fs.flush</code></a> method may be called more than once for each <a href="#fs.open"><code>fs.open</code></a>. This happens if more than one file descriptor refers to an opened file due to dup(), dup2() or fork() calls. It is not possible to determine if a flush is final, so each flush should be treated equally. Multiple write-flush sequences are relatively rare, so this shouldn't be a problem.</p>
+
+<p>Filesystems shouldn't assume that <a href="#fs.flush"><code>fs.flush</code></a> will always be called after some writes, or that it will be called at all.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.release"><code>fs.release (path, fi)</code></a></h3>
+
+<p>Release an open file. See <a href="#fs.open"><code>fs.open</code></a> for a description of <code>fi</code>.</p>
+
+<p>Release is called when there are no more references to an open file: all file descriptors are closed and all memory mappings are unmapped.</p>
+
+<p>For every open() call there will be exactly one release() call with the same flags and file descriptor. It is possible to have a file opened more than once, in which case only the last release will mean, that no more reads/writes will happen on the file. Errors in release are ignored.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.fsync"><code>fs.fsync (path, datasync, fi)</code></a></h3>
+
+<p>Synchronize file contents. If the <code>datasync</code> parameter is <code>true</code>, then only the user data should be flushed, not the meta data. See <a href="#fs.open"><code>fs.open</code></a> for a description of <code>fi</code>.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.setxattr"><code>fs.setxattr (path, name, value, flags)</code></a></h3>
+
+<p>Set an extended attribute on the file. <code>flags</code> is a set with the following recognized flags: <code>create</code>, <code>replace</code>. If <code>create</code> is set the method should throw an error if the attribute exists. If <code>replace</code> the method should throw when the attribute doesn't exist.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.getxattr"><code>value = fs.getxattr (path, name)</code></a></h3>
+
+<p>Get an extended attribute. If the attribute doesn't exist <code>ENODATA</code> should be thrown.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.listxattr"><code>list = fs.listxattr (path)</code></a></h3>
+
+<p>Return a list of extended attribute names. <code>list</code> should be an array of strings.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.removexattr"><code>fs.removexattr (path, name)</code></a></h3>
+
+<p>Remove an extended attribute. If the attribute doesn't exist <code>ENODATA</code> should be thrown.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.opendir"><code>fs.opendir (path, fi)</code></a></h3>
+
+<p>Open directory. This method should check if the open operation is permitted for this directory. See <a href="#fs.open"><code>fs.open</code></a> for a description of <code>fi</code>.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.readdir"><code>fs.readdir (path, filler, fi)</code></a></h3>
+
+<p>Read directory. <code>filler</code> is a function with the prototype <code>filler(name)</code> that must be called for each directory entry, and that will return <code>false</code> when the output buffer is full, <code>true</code> otherwise. See <a href="#fs.open"><code>fs.open</code></a> for a description of <code>fi</code>.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.releasedir"><code>fs.releasedir (path, fi)</code></a></h3>
+
+<p>Release a directory. See <a href="#fs.open"><code>fs.open</code></a> for a description of <code>fi</code>.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.fsyncdir"><code>fs.fsyncdir (path, datasync, fi)</code></a></h3>
+
+<p>Synchronize directory contents. If the <code>datasync</code> parameter is <code>true</code>, then only the user data should be flushed, not the meta data. See <a href="#fs.open"><code>fs.open</code></a> for a description of <code>fi</code>.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.access"><code>fs.access (path, mask)</code></a></h3>
+
+<p>Check file access permissions. This will be called for the <code>access()</code> system call. If the <code>'default_permissions'</code> mount option is given, this method is not called.</p>
+
+<p>This method is not called under Linux kernel versions 2.4.x.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.create"><code>fs.create (path, mode, fi)</code></a></h3>
+
+<p>Create and open a file. <code>mode</code> is a set, see <a href="#fs.getattr"><code>fs.getattr</code></a> for a description of the recognized flags. See <a href="#fs.open"><code>fs.open</code></a> for a description of <code>fi</code>.</p>
+
+<p>If the file does not exist, first create it with the specified <code>mode</code>, and then open it.</p>
+
+<p>If this method is not implemented or under Linux kernel versions earlier than 2.6.15, the mknod() and open() methods will be called instead.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.ftruncate"><code>fs.ftruncate (path, size, fi)</code></a></h3>
+
+<p>Change the size of an open file. See <a href="#fs.open"><code>fs.open</code></a> for a description of <code>fi</code>.</p>
+
+<p>This method is called instead of the <a href="#fs.truncate"><code>fs.truncate</code></a> method if the truncation was invoked from an <code>ftruncate()</code> system call.</p>
+
+<p>If this method is not implemented or under Linux kernel versions earlier than 2.6.15, the <a href="#fs.truncate"><code>fs.truncate</code></a> method will be called instead.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.fgetattr"><code>fs.fgetattr (path, st, fi)</code></a></h3>
+
+<p>Get attributes from an open file.</p>
+
+<p>This method is called instead of the <a href="#fs.getattr"><code>fs.getattr</code></a> method if the file information is available.</p>
+
+<p>Currently this is only called after the <a href="#fs.create"><code>fs.create</code></a> method if that is implemented (see above). Later it may be called for invocations of <code>fstat()</code> too.</p>
+		</div>
+
+		<div class="function">
+		<h3><a name="fs.utimens"><code>fs.utimens (path, access, modification)</code></a></h3>
+
+<p>Change the access and modification times of a file with nanosecond resolution. <code>access</code> and <code>modification</code> are Lua tables with two fields each:</p>
+
+<ul>
+    <li><code>sec</code>, number, time in seconds</li>
+    <li><code>nsec</code>, number, the sub-second portion of the time, in nanoseconds</li>
+</ul>
+
+		</div>
+
+	</div>
+
+</div>
+
+<div class="chapter" id="footer">
+<small>Last update: 2015-03-31 11:45:07 BST</small>
+</div>
+
+</body>
+</html>
+
