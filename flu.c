@@ -823,7 +823,7 @@ static int lua__main(lua_State *L)
 	lua_replace(L, 2);  // The new table containing all the identified functions
 
 #if FUSE_USE_VERSION >= 26
-	fuse_main(largc + cargc, argv, &oper, L);
+	fuse_main(largc + cargc, argv, &oper, L);   // Also stores L in fuse_context->private_data
 #elif FUSE_USE_VERSION >= 23
 	if (init__23__state!=0) return luaL_error(L, "another FUSE filesystem is being run, try again later");
 	init__23__state = L;

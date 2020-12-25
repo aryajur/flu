@@ -14,10 +14,10 @@
 #include "compat.h"
 
 /****************************************************************************/
-
+// Push the stat mode table on the stack
 void lua__push__stat_mode(lua_State* L, mode_t m)
 {
-	lua_newtable(L);
+	lua_newtable(L);    // Stat mode table
 	if (S_ISBLK(m))		{ lua_pushboolean(L, 1); lua_setfield(L, -2, "blk"); }
 	if (S_ISCHR(m))		{ lua_pushboolean(L, 1); lua_setfield(L, -2, "chr"); }
 	if (S_ISFIFO(m))	{ lua_pushboolean(L, 1); lua_setfield(L, -2, "fifo"); }
@@ -39,6 +39,7 @@ void lua__push__stat_mode(lua_State* L, mode_t m)
 	if (m & S_ISVTX)	{ lua_pushboolean(L, 1); lua_setfield(L, -2, "svtx"); }
 }
 
+// Return the mode structure from the stat table
 mode_t lua__to__stat_mode(lua_State* L, int index)
 {
 	mode_t m;
@@ -95,7 +96,7 @@ mode_t lua__to__stat_mode(lua_State* L, int index)
 }
 
 /****************************************************************************/
-
+// Function to return the stat index
 static int lua__stat__index(lua_State* L)
 {
 	struct stat** pst;
@@ -126,7 +127,7 @@ static int lua__stat__index(lua_State* L)
 	lua_pushnil(L);
 	return 1;
 }
-
+// stat metatable newindex to set keys
 static int lua__stat__newindex(lua_State* L)
 {
 	struct stat** pst;
@@ -155,6 +156,7 @@ static int lua__stat__newindex(lua_State* L)
 	return 0;
 }
 
+// Stat garbage collection
 static int lua__stat__gc(lua_State* L)
 {
 	struct stat** pst;
@@ -168,6 +170,7 @@ static int lua__stat__gc(lua_State* L)
 }
 
 // See http://www.opengroup.org/onlinepubs/009695399/basedefs/sys/stat.h.html
+// Push the stat structure on the Lua Stack
 void lua__push__stat(lua_State* L, struct stat* st)
 {
 	struct stat** pst;
@@ -535,13 +538,13 @@ static int lua__timeval_array__index(lua_State* L)
 	{
 		size_t size;
 		size_t index;
-		
+
 		lua_getmetatable(L, 1);
 		lua_getfield(L, -1, "size");
 		size = lua_tonumber(L, -1);
 		lua_pop(L, 2);
 		index = lua_tonumber(L, 2) - 1;
-		
+
 		if (index<size)
 		{
 			struct timeval* times;
