@@ -5,9 +5,9 @@ LUA_VERSION=5.3
 
 PREFIX?=/usr
 INSTALL_BIN=$(PREFIX)/lib/lua/$(LUA_VERSION)
-CPPFLAGS+=-Wall -Wextra -Werror -O2 -Wno-unused-function -Iinc
+CPPFLAGS+=-Wall -Wextra -O2 -Wno-unused-function -Iinc
 CFLAGS+=-fPIC
-LDFLAGS+=-fvisibility=hidden
+LDFLAGS+=-fvisibility=hidden -Wl,-rpath,.
 
 
 build: flu.so
