@@ -28,6 +28,10 @@ int lua_iserrno(lua_State* L, int index);
 int lua_toerrno(lua_State* L, int index);
 void push_errno_table(lua_State* L);
 
+// PROLOGUE does the following:
+// 1. Gets the fuse_context in variable context and gets the Lua state from it in L
+// 2. Pushes the lua handler function from the finctions table TABLEB - as documented in the main function TABLEB[#method]
+// 3. Initializes top to stack top
 #define PROLOGUE(method) \
 	struct fuse_context* context; \
 	lua_State* L; \
@@ -40,6 +44,13 @@ void push_errno_table(lua_State* L);
 	top = lua_gettop(L); \
 	lua_getfield(L, 2, #method);
 
+// CALL does the following:
+// 1. pcalls the function at the top of the stack and checks for any error
+//      - lua_pcall nargs = gettop(L)-top-1 because 1 entry has to be removed for the function that is being called
+// 2. If there was an error then it checks the error object (lua_iserrno)
+// 3. If not the error object userdata from errno then simply generates an error using lua_error otherwise
+//    gets the error number and signals it as an error by returning the negative error code as instructed in fuse.h fuse_operations structure documentation
+// If code does not return by now then code execution successful and you can return 0
 #define CALL(nresult) \
 	if (lua_pcall(L, lua_gettop(L)-top-1, nresult, 0)) \
 	{ \
@@ -166,6 +177,9 @@ static int lua__fuse_file_info__newindex(lua_State* L)
 	return 0;
 }
 
+// Function to link the fuse_file_info structure fi to a userdata and set its metatable to read and write values to it
+// function lua_fuse_file_info__index is used to read data from it
+// function lua_fuse_file_info__newindex is used to write data to it
 static void lua__push__fuse_file_info(lua_State* L, struct fuse_file_info* fi)
 {
 	struct fuse_file_info** pfi;
@@ -700,27 +714,36 @@ static int fuse__utimens(const char* path, const struct timespec tv[2])
 }
 
 /****************************************************************************/
-
+// Function to register all the functions from Lua into fuse for filesystem operations
 static int lua__main(lua_State *L)
 {
 //	pthread_rwlock_t* lock;
 	int largc, cargc;
 	char** argv;
 	int i;
-	struct fuse_operations oper;
-
+	struct fuse_operations oper;    // Store all the filesystem operation functions
+                                    // fuse_operations is defined in fuse.h and contains prototypes of all the functions
+    // Arguments passed to the function are:
 	// 1: argv
 	// 2: method table
 
+	// Note luaL_check* functions always raise an error if the check is not satisfied
 	luaL_checktype(L, 1, LUA_TTABLE);   // argv
 	luaL_checktype(L, 2, LUA_TTABLE);   // methods
 	lua_settop(L, 2);   // Keep only 2 elements
 
-	largc = rawlen(L, 1);   // --------------------WHERE IS THIS DEFINED????
+	largc = rawlen(L, 1);   // rawlen defined in compat.h it is alias for lua_rawlen in Lua 5.3
+                            // This stores length of argv in largc
 	cargc = 1;  // To store -s option
+	// Create a new table and store all the argv strings in it. TABLEA = {}
 	lua_newtable(L);    // New table - Stack top(ST)=3
+
+	// argv is an array of string pointers
 	argv = (char**)lua_newuserdata(L, sizeof(char*) * (largc + cargc + 1)); // To store user data for all strings in argv (largc) + -s option and finally NULL (ST=4)
-	lua_rawseti(L, -2, 0);  // Put the userdata in 0 index of the new Lua Table at 3, ST=3
+
+    // TABLEA[0]=argv
+	lua_rawseti(L, -2, 0);  // Put the userdata (argv) defined above in 0 index of the new Lua Table at 3, ST=3
+	// Now process all the arguments in argv 1 by 1
 	for (i=0; i < largc; ++i)
 	{
 		size_t len;
@@ -733,7 +756,7 @@ static int lua__main(lua_State *L)
 		udata = (char*)lua_newuserdata(L, len+1);   // New user data on top of stack to store the string ST=5
 		memcpy(udata, str, len+1);  // Copy the string data to the userdata data
 		argv[i] = udata;    // Copy the userdata to the argv user data
-		lua_rawseti(L, -3, i+1);    // Put the userdata in the new methods table at index i+1 ST=4
+		lua_rawseti(L, -3, i+1);    // Put the userdata in the TABLEA TABLEA[i+1]=udata ST=4
 		lua_pop(L, 1);  // Pop the string from the stack ST=3
 	}
 	// Single threaded operation for the moment
@@ -742,18 +765,30 @@ static int lua__main(lua_State *L)
 		const char* str;
 		char* udata;
 		len = 2;
-		str = "-s";
+		str = "-s"; // option for single threaded operation
 		udata = (char*)lua_newuserdata(L, len+1); //ST=4
 		memcpy(udata, str, len+1);
 		argv[i] = udata;
-		lua_rawseti(L, -2, i+1); //ST=3
+		lua_rawseti(L, -2, i+1); // TABLEA[i+1]=udata ST=3
 	}
 	++i;
 	argv[i] = NULL;
-	lua_replace(L, 1);  // Replace argv with the new table containing all the strings in userdata and 0 index containing the argv userdata ST=2
+	lua_replace(L, 1);  // Replace argv (the table passed to this function) with the new table TABLEA
+                        // containing all the strings in userdata and 0 index containing the argv userdata
+                        // ST=2
 
+    // New Lua Functions table TABLEB={}
 	lua_newtable(L);    // ST=3
 	memset(&oper, 0, sizeof(struct fuse_operations));   // initialize oper space with all 0s
+	// ## means string concatenation
+	// # prefix stringizes the method parameter
+	// CHECK_METHOD does the following:
+	// 1. Gets the value pointed by #method in the method table passed to this function by Lua
+	// 2. Checks whether the value is a function (can be nil if that function is not defined)
+	//      ST=4
+	// 3. If a function then sets oper.method to the right function defined above to handle the appropriate fuse operation
+	// 4. Sets the Lua function into the New Lua functions table defined above TABLEB[#method] = #method function from method table - basically just copying over the method table
+	// In the end the New Lua functions table is left at the top and ST=3
 	#define CHECK_METHOD(method) \
 		lua_getfield(L, 2, #method); \
 		if (lua_isfunction(L, -1)) \
@@ -820,22 +855,66 @@ static int lua__main(lua_State *L)
 //	CHECK_METHOD(bmap) /* :TODO: */
 #endif
 	#undef CHECK_METHOD
-	lua_replace(L, 2);  // The new table containing all the identified functions
+	// ST=3
+	lua_replace(L, 2);  // The New Lua functions table replaces the method table passed to this function
+                        // ST=2
 
 #if FUSE_USE_VERSION >= 26
-	fuse_main(largc + cargc, argv, &oper, L);   // Also stores L in fuse_context->private_data
+	i = fuse_main(largc + cargc, argv, &oper, L);   // Also stores L in fuse_context->private_data
 #elif FUSE_USE_VERSION >= 23
 	if (init__23__state!=0) return luaL_error(L, "another FUSE filesystem is being run, try again later");
 	init__23__state = L;
-	fuse_main(largc + cargc, argv, &oper);
+	i = fuse_main(largc + cargc, argv, &oper);
 #endif
+    if (i==0) {
+        lua_pushboolean(L,1);   // main returns 0 for success
+        return 1;
+    }
+    else {
+        lua_pushnil(L);
+        // Now push the error message. The code is as follows (from fuse.h):
 
-	return 0;
+ /* The following error codes may be returned from fuse_main():
+ *   1: Invalid option arguments
+ *   2: No mount point specified
+ *   3: FUSE setup failed
+ *   4: Mounting failed
+ *   5: Failed to daemonize (detach from session)
+ *   6: Failed to set up signal handlers
+ *   7: An error occured during the life of the file system
+ */
+        switch(i) {
+            case 1:
+                lua_pushstring(L,"Invalid option arguments.);
+                break;
+            case 2:
+                lua_pushstring(L,"No mount point specified.");
+                break;
+            case 3:
+                lua_pushstring(L,"FUSE setup failed.");
+                break;
+            case 4:
+                lua_pushstring(L,"Mounting failed.");
+                break;
+            case 5:
+                lua_pushstring(L,"Failed to daemonize (detach from session).");
+                break;
+            case 6:
+                lua_pushstring(L,"Failed to set up signal handlers.");
+                break;
+            case 7:
+                lua_pushstring(L,"An error occured during the life of the file system");
+                break;
+            default:
+                lua_pushstring(L,"Unknown Error.");
+        }
+        return 2;
+    }
 }
-
+// Function to get the context of a fuse call by calling fuse_get_context
 static int lua__get_context(lua_State *L)
 {
-	struct fuse_context* context;
+	struct fuse_context* context;   // defined in fuse.h
 	context = fuse_get_context();
 	if (lua_gettop(L) == 0)
 		lua_createtable(L, 0, 3);
@@ -858,7 +937,7 @@ static const luaL_Reg functions[] = {
 __attribute__((visibility ("default"))) int luaopen_flu(lua_State *L)
 {
 #if LUA_VERSION_NUM==502 || LUA_VERSION_NUM==503
-	lua_newtable(L);
+	lua_newtable(L);    // table flu
 #elif LUA_VERSION_NUM==501
 	{
 		static luaL_Reg empty[] = { {0, 0} };
@@ -868,13 +947,16 @@ __attribute__((visibility ("default"))) int luaopen_flu(lua_State *L)
 #error unsupported Lua version
 #endif
 
-	setfuncs(L, functions, 0);
-
+	setfuncs(L, functions, 0);  // Registers all the functions in the array functions into the table on the top
+                                // flu.main = lua_main
+                                // flu.get_context = lua__get_context
+    // Note the last element pushed on the stack has the index -1
+    // 1st element pushed on the stack has the index 1
 	lua_pushnumber(L, FUSE_USE_VERSION);
-	lua_setfield(L, -2, "FUSE_USE_VERSION");
+	lua_setfield(L, -2, "FUSE_USE_VERSION");    // flu.FUSE_USE_VERSION = FUSE_USE_VERSION
 
 	push_errno_table(L);
-	lua_setfield(L, -2, "errno");
+	lua_setfield(L, -2, "errno");   // flu.errno = errno table created in push_errno_table
 
 #if LUA_VERSION_NUM==502 || LUA_VERSION_NUM==503
 	return 1;

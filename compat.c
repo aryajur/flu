@@ -7,7 +7,11 @@
 
 int typeerror(lua_State* L, int narg, const char* tname)
 {
+    // Create a Lua string with the error message and put it on the stack
+    // luaL_typename returns the name of the type of value at the given index
 	const char* msg = lua_pushfstring(L, "%s expected, got %s", tname, luaL_typename(L, narg));
+	// raises the error of the typeof message:
+	// bad argument #arg to 'funcname' (extramsg)
 	return luaL_argerror(L, narg, msg);
 }
 

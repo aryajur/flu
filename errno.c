@@ -17,6 +17,9 @@ static void lua_pusherrno(lua_State* L, int err)
 	lua_setmetatable(L, -2);
 }
 
+// Function to check if the object at index on the stack is one of the error userdata of the errno table
+// If not it returns 0
+// if yes it returns 1 - checks the metatable of the userdata at index and compares it with the metatable of errno
 int lua_iserrno(lua_State* L, int index)
 {
 	int iserrno;
@@ -45,11 +48,11 @@ static int errno__tostring(lua_State* L)
 {
 	int err;
 	const char* result;
-	
+
 	err = luaL_checkerrno(L, 1);
-	
-	result = strerror(err);
-	
+
+	result = strerror(err); // strerror returns a pointer to a string that describes the error
+
 	lua_pushstring(L, result);
 	return 1;
 }
@@ -59,13 +62,23 @@ static const luaL_Reg errno_mt[] = {
 	{0, 0},
 };
 
+// Function to generate and push the error numbers table on the Lua Stack
 void push_errno_table(lua_State* L)
 {
-	if (luaL_newmetatable(L, "errno"))
-		setfuncs(L, errno_mt, 0);
-	lua_pop(L, 1);
-	
-	lua_newtable(L);
+	if (luaL_newmetatable(L, "errno"))  // creats a new table to be used as a metatable for userdata
+                                        // and sets ["errno"]=new table in the registry
+                                        // also sets __name="errno" in the table
+                                        // The table will be on top of the stack
+                                        // ST += 1
+		setfuncs(L, errno_mt, 0);   // registers all the functions in errno_mt into the table on the top of the stack
+                                    // i.e. t[funcName] = function
+                                    // in this case t.__tostring = errno__tostring
+	lua_pop(L, 1);      // remove the metatable from the stack
+
+	lua_newtable(L);    // table errno
+	// REGISTER_ERROR does the following:
+	// errno[#error] = error where error is a userdata created in lua_pusherrno which basically points to the
+	//                  error integer number but has the errno metatable (made above) set to it
 	#define REGISTER_ERROR(error) \
 		lua_pushstring(L, #error); lua_pusherrno(L, error); lua_settable(L, -3);
 	REGISTER_ERROR(EPERM)
