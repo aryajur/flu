@@ -25,10 +25,10 @@ int lua_iserrno(lua_State* L, int index)
 	int iserrno;
 	if (lua_type(L, index)!=LUA_TUSERDATA)
 		return 0;
-	lua_getmetatable(L, index);
-	luaL_getmetatable(L, "errno");
+	lua_getmetatable(L, index); // ST = 1
+	luaL_getmetatable(L, "errno");  // ST = 2
 	iserrno = lua_rawequal(L, -1, -2);
-	lua_pop(L, 2);
+	lua_pop(L, 2);  // ST = 0 -- Balanced
 	return iserrno;
 }
 
