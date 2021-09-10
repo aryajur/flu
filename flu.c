@@ -56,6 +56,7 @@ void push_errno_table(lua_State* L);
 	{ \
 		/* if error is a small integer, return it */ \
 		/* otherwise propagate the value */ \
+        /* Error object is pushed to the stack */ \
 		int err; \
 		/* :KLUDGE: luaB_error is calling lua_isstring, and numbers get converted to strings, so we need to use userdata */ \
 		if (!lua_iserrno(L, -1)) \
